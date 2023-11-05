@@ -43,9 +43,13 @@ fn get_procesor_info(r: i32, c: i32) -> String {
 fn get_svg() -> String {
     let rows = 10;
     let cols = 10;
+    let width = rows * 150;
+    let height = cols * 150;
 
     // Create document
-    let mut document = Document::new().set("viewbox", (0, 0, rows * 150, cols * 150));
+    let mut document = Document::new()
+        .set("viewBox", (0, 0, width, height))
+        .set("preserveAspectRatio", "xMidYMid meet");
 
     for c in 0..cols {
         for r in 0..rows {

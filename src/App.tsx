@@ -1,44 +1,30 @@
 import { invoke } from "@tauri-apps/api/tauri";
-import { onMount } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import "./App.css";
+import ProcessorsGraph from "./ProcessorsGraph";
 
 function App() {
-  let render: HTMLDivElement | undefined;
+  const [svg, setSvg] = createSignal<HTMLElement | undefined>(undefined);
 
   onMount(() => {
     invoke("get_svg")
       .then((res) => {
-        if (render && typeof res === "string") {
+        if (typeof res === "string") {
           const parser = new DOMParser();
-          const svg = parser.parseFromString(res, "image/svg+xml");
-          svg.documentElement.childNodes.forEach((node, i) => {
-            node.addEventListener("mouseenter", () => {
-              const id = (node as HTMLElement).id
-                .split(",")
-                .map((n) => parseInt(n) - 1);
-              invoke("get_procesor_info", { r: id[0], c: id[1] })
-                .then((res) => console.log(res))
-                .catch(console.error);
-            });
+          const svg = parser.parseFromString(
+            res,
+            "image/svg+xml"
+          ).documentElement;
 
-            node.addEventListener("mouseleave", () => {
-              console.log(`Left node ${i}`);
-            });
-          });
-          render.appendChild(svg.documentElement);
-        } else
-          throw new Error(
-            `Canvas is undefined: ${render === undefined}. Res is string: ${
-              typeof res === "string"
-            }`
-          );
+          setSvg(svg);
+        } else throw new Error(`Res is string: ${typeof res === "string"}`);
       })
       .catch(console.log);
   });
   return (
-    <div class="container">
-      <div class="side-panel"></div>
-      <div class="render" ref={render}></div>
+    <div class="grid grid-cols-[20%_80%] h-full">
+      <div class="h-full bg-pink-500"></div>
+      <ProcessorsGraph svg={svg} />
     </div>
   );
 }
