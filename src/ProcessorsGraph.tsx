@@ -42,7 +42,7 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
     const y = coor.y - svgRef.clientHeight / 2;
     const scaleFactor = delta ? 1.1 : 0.9;
 
-    const s = setScale((s) => (s *= scaleFactor));
+    const s = setScale((s) => Math.max((s *= scaleFactor), 0.5));
     const p = setPoint((p) => {
       p.x = x - (x - p.x) * scaleFactor;
       p.y = y - (y - p.y) * scaleFactor;
