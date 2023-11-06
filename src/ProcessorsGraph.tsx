@@ -22,9 +22,9 @@ function releaseHover(ev: Event) {
 }
 
 export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
-  const [center, setCenter] = createSignal<{ x: number; y: number }>();
   const [matrix, setMatrix] = createSignal<DOMMatrix>();
-  const [point, setPoint] = createSignal<DOMPoint>();
+  const [point, setPoint] = createSignal<DOMPoint>(new DOMPoint(0, 0));
+  const [scale, setScale] = createSignal<number>(1);
   const [coordinates, setCoordinates] = createSignal<{
     x: number;
     y: number;
@@ -35,38 +35,26 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
 
   function handleWheel(ev: WheelEvent) {
     const delta = ev.deltaY < 0;
-    let p = setPoint((p) => {
-      if (!p) return undefined;
-      const c = coordinates();
-      if (!c) return undefined;
-      p.x = c.x;
-      p.y = c.y;
+
+    const coor = coordinates();
+    if (!svgRef || !coor) return undefined;
+    const x = coor.x - svgRef.clientWidth / 2;
+    const y = coor.y - svgRef.clientHeight / 2;
+    const scaleFactor = delta ? 1.1 : 0.9;
+
+    const s = setScale((s) => (s *= scaleFactor));
+    const p = setPoint((p) => {
+      p.x = x - (x - p.x) * scaleFactor;
+      p.y = y - (y - p.y) * scaleFactor;
 
       return p;
     });
 
-    const m = setMatrix((m) => {
-      if (!m || !p || !container) return undefined;
-      const scaleFactor = delta ? 1.1 : 0.9;
-
-      const wx = p.x / container.clientWidth;
-      const wy = p.y / container.clientHeight;
-
-
-      // console.log(m);
-      // m = m.translate(p.x, p.y);
-      console.log(m);
-      
-      m = m.scale(scaleFactor, scaleFactor);
-      console.log(m);
-      m = m.translate(p.x, -p.y);
-      // console.log(m);
-      return m;
-    });
-
-    if (svgRef && m) {
-      svgRef.style.transform = `matrix(${m.a}, ${m.b}, ${m.c}, ${m.d}, ${m.e}, ${m.f})`;
+    if (svgRef && p && s) {
+      svgRef.style.transform = `matrix(${s}, 0, 0, ${s}, ${p.x}, ${p.y})`;
     }
+
+    ev.preventDefault();
   }
 
   function handleMouseMove(ev: MouseEvent) {
@@ -74,19 +62,12 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
       x: ev.offsetX,
       y: ev.offsetY,
     });
+    ev.preventDefault();
   }
 
   createEffect(() => {
     const svgElement = svg();
     if (container && svgElement) {
-      // Calculate view box center
-      const viewbox = svgElement.getAttribute("viewBox")?.split(" ");
-      if (viewbox) {
-        setCenter({
-          x: parseInt(viewbox[2]) / 2,
-          y: parseInt(viewbox[3]) / 2,
-        });
-      }
       // Attach hover listener to each processor
       svgElement.childNodes.forEach((node) => {
         node.addEventListener("mouseenter", engageHover);
@@ -97,7 +78,7 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
       // Add wheel listener for zooming
       svgElement.addEventListener("wheel", handleWheel);
       // Add move listener for coordinates
-      container.addEventListener("mousemove", handleMouseMove);
+      svgElement.addEventListener("mousemove", handleMouseMove);
 
       // Add to DOM
       svgRef = container.appendChild(svgElement);
