@@ -6,7 +6,9 @@ use quick_xml::Error;
 use quick_xml::Reader;
 use quick_xml::Writer;
 
-static SVG_ATTRIBUTES: [(&'static str, &'static str); 3] = [
+static SVG_ATTRIBUTES: [(&'static str, &'static str); 5] = [
+    ("xmlns:svg", "http://www.w3.org/2000/svg"),
+    ("xmlns", "http://www.w3.org/2000/svg"),
     ("preserveAspectRatio", "xMidYMid meet"),
     ("class", "w-full max-h-full"),
     ("style", "scale: 1;"),

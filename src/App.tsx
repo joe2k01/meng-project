@@ -20,7 +20,7 @@ function App() {
           setSvg(svg);
         } else throw new Error(`Res is string: ${typeof res === "string"}`);
       })
-      .catch(console.log);
+      .catch(console.error);
   });
   return (
     <div class="grid grid-cols-[20%_80%] h-full">

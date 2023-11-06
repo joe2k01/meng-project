@@ -5,4 +5,5 @@ module.exports = {
     extend: {},
   },
   plugins: [],
+  safelist: ["max-h-full"],
 };

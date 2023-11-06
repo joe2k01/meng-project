@@ -29,7 +29,6 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
 
   function handleWheel(ev: WheelEvent) {
     const scale = ev.deltaY < 0 ? 0.25 : -0.25;
-    console.log(scale);
 
     if (svgRef) {
       svgRef.style.scale = `${Math.max(
@@ -60,9 +59,7 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
       // Add wheel listener for zooming
       svgElement.addEventListener("wheel", handleWheel);
 
-      // Style SVG so that it stretches through whole available space
-      svgElement.classList.add("w-full", "max-h-full");
-      // svgElement.style.scale = "1";
+      // Add to DOM
       svgRef = container.appendChild(svgElement);
     }
 
