@@ -1,37 +1,25 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use svg::node::element::path::Data;
-use svg::node::element::Group;
-use svg::node::element::Path;
-use svg::Document;
+use quick_xml::events::Event;
+use quick_xml::Error;
+use quick_xml::Reader;
+use quick_xml::Writer;
 
-fn draw_processor(r: i32, c: i32) -> Group {
-    let data = Data::new()
-        .move_to((150 * r, 150 * c))
-        .line_by((75, 0))
-        .line_by((25, 25))
-        .line_by((0, 75))
-        .line_by((-100, 0))
-        .line_by((0, -100))
-        .move_by((75, 0))
-        .line_by((0, -25))
-        .line_by((50, 0))
-        .line_by((0, 50))
-        .line_by((-25, 0));
-
-    let path = Path::new()
-        .set("fill", "none")
-        .set("stroke", "black")
-        .set("stroke-width", 3)
-        .set("fill-rule", "evenodd")
-        .set("stroke-linecap", "butt")
-        .set("d", data);
-
-    return Group::new()
-        .set("id", format!("{},{}", r + 1, c + 1))
-        .add(path);
-}
+static SVG_ATTRIBUTES: [(&'static str, &'static str); 3] = [
+    ("preserveAspectRatio", "xMidYMid meet"),
+    ("class", "w-full max-h-full"),
+    ("style", "scale: 1;"),
+];
+static PROCESSOR_PATH: &str =
+    r#"l75,0 l25,25 l0,75 l-100,0 l0,-100 m75,0 l0,-25 l50,0 l0,50 l-25,0"#;
+static PROCESSOR_ATTRIBUTES: [(&'static str, &'static str); 5] = [
+    ("fill", "none"),
+    ("fill-rule", "evenodd"),
+    ("stroke", "black"),
+    ("stroke-linecap", "butt"),
+    ("stroke-width", "3"),
+];
 
 #[tauri::command]
 fn get_procesor_info(r: i32, c: i32) -> String {
@@ -46,18 +34,37 @@ fn get_svg() -> String {
     let width = rows * 150;
     let height = cols * 150;
 
-    // Create document
-    let mut document = Document::new()
-        .set("viewBox", (0, 0, width, height))
-        .set("preserveAspectRatio", "xMidYMid meet");
+    let mut buffer = Vec::new();
+    let mut writer = Writer::new(&mut buffer);
 
-    for c in 0..cols {
-        for r in 0..rows {
-            document = document.add(draw_processor(r, c));
-        }
-    }
+    // Create svg
+    writer
+        .create_element("svg")
+        .with_attributes(SVG_ATTRIBUTES)
+        .with_attribute(("viewBox", format!("0 0 {} {}", width, height).as_str()))
+        .write_inner_content::<_, Error>(|svgWriter| {
+            for c in 0..cols {
+                for r in 0..rows {
+                    svgWriter
+                        .create_element("g")
+                        .with_attribute(("id", format!("{},{}", r + 1, c + 1).as_str()))
+                        .write_inner_content::<_, Error>(|writer| {
+                            writer
+                                .create_element("path")
+                                .with_attributes(PROCESSOR_ATTRIBUTES)
+                                .with_attribute((
+                                    "d",
+                                    format!("M{},{} {}", c * 150, r * 150, PROCESSOR_PATH).as_str(),
+                                ))
+                                .write_empty()?;
+                            Ok(())
+                        });
+                }
+            }
+            Ok(())
+        });
 
-    return document.to_string();
+    return std::str::from_utf8(&buffer).unwrap().to_string();
 }
 
 fn main() {

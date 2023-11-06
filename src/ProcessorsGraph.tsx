@@ -62,7 +62,7 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
 
       // Style SVG so that it stretches through whole available space
       svgElement.classList.add("w-full", "max-h-full");
-      svgElement.style.scale = "1";
+      // svgElement.style.scale = "1";
       svgRef = container.appendChild(svgElement);
     }
 

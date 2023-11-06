@@ -11,6 +11,7 @@ function App() {
       .then((res) => {
         if (typeof res === "string") {
           const parser = new DOMParser();
+
           const svg = parser.parseFromString(
             res,
             "image/svg+xml"
