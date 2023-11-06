@@ -6,12 +6,11 @@ use quick_xml::Error;
 use quick_xml::Reader;
 use quick_xml::Writer;
 
-static SVG_ATTRIBUTES: [(&'static str, &'static str); 5] = [
+static SVG_ATTRIBUTES: [(&'static str, &'static str); 4] = [
     ("xmlns:svg", "http://www.w3.org/2000/svg"),
     ("xmlns", "http://www.w3.org/2000/svg"),
     ("preserveAspectRatio", "xMidYMid meet"),
     ("class", "w-full max-h-full"),
-    ("style", "scale: 1;"),
 ];
 static PROCESSOR_PATH: &str =
     r#"l75,0 l25,25 l0,75 l-100,0 l0,-100 m75,0 l0,-25 l50,0 l0,50 l-25,0"#;

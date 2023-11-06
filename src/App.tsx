@@ -4,7 +4,7 @@ import "./App.css";
 import ProcessorsGraph from "./ProcessorsGraph";
 
 function App() {
-  const [svg, setSvg] = createSignal<HTMLElement | undefined>(undefined);
+  const [svg, setSvg] = createSignal<SVGSVGElement | undefined>(undefined);
 
   onMount(() => {
     invoke("get_svg")
@@ -12,12 +12,10 @@ function App() {
         if (typeof res === "string") {
           const parser = new DOMParser();
 
-          const svg = parser.parseFromString(
-            res,
-            "image/svg+xml"
-          ).documentElement;
+          const svg = parser.parseFromString(res, "image/svg+xml")
+            .documentElement as unknown;
 
-          setSvg(svg);
+          setSvg(svg as SVGSVGElement | undefined);
         } else throw new Error(`Res is string: ${typeof res === "string"}`);
       })
       .catch(console.error);
