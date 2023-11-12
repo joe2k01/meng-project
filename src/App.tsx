@@ -21,8 +21,8 @@ function App() {
       .catch(console.error);
   });
   return (
-    <div class="grid grid-cols-[20%_80%] h-full">
-      <div class="h-full bg-pink-500"></div>
+    <div class="flex h-full">
+      {/* <div class="h-full bg-pink-500"></div> */}
       <ProcessorsGraph svg={svg} />
     </div>
   );
