@@ -39,29 +39,38 @@ fn get_svg() -> String {
     let mut writer = Writer::new(&mut buffer);
 
     // Create svg
-    writer
+    let _ = writer
         .create_element("svg")
         .with_attributes(SVG_ATTRIBUTES)
         .with_attribute(("viewBox", format!("0 0 {} {}", width, height).as_str()))
-        .write_inner_content::<_, Error>(|svgWriter| {
-            for c in 0..cols {
-                for r in 0..rows {
-                    svgWriter
-                        .create_element("g")
-                        .with_attribute(("id", format!("{},{}", r + 1, c + 1).as_str()))
-                        .write_inner_content::<_, Error>(|writer| {
-                            writer
-                                .create_element("path")
-                                .with_attributes(PROCESSOR_ATTRIBUTES)
-                                .with_attribute((
-                                    "d",
-                                    format!("M{},{} {}", c * 150, r * 150, PROCESSOR_PATH).as_str(),
-                                ))
-                                .write_empty()?;
-                            Ok(())
-                        });
-                }
-            }
+        .write_inner_content::<_, Error>(|svg_writer| {
+            // Graph
+            let _ = svg_writer
+                .create_element("g")
+                .with_attribute(("id", "graph"))
+                .write_inner_content::<_, Error>(|graph_writer| {
+                    for c in 0..cols {
+                        for r in 0..rows {
+                            let _ = graph_writer
+                                .create_element("g")
+                                .with_attribute(("id", format!("{},{}", r + 1, c + 1).as_str()))
+                                .write_inner_content::<_, Error>(|writer| {
+                                    writer
+                                        .create_element("path")
+                                        .with_attributes(PROCESSOR_ATTRIBUTES)
+                                        .with_attribute((
+                                            "d",
+                                            format!("M{},{} {}", c * 150, r * 150, PROCESSOR_PATH)
+                                                .as_str(),
+                                        ))
+                                        .write_empty()?;
+                                    Ok(())
+                                });
+                        }
+                    }
+                    Ok(())
+                });
+
             Ok(())
         });
 
