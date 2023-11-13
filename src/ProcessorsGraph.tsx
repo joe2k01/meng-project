@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api";
 import { select, zoom } from "d3";
-import { Accessor, createEffect, onCleanup } from "solid-js";
+import { Accessor, Setter, createEffect, onCleanup } from "solid-js";
+import { TransformDataT } from "./App";
 
 type ProcessorsGraphT = {
   svg: Accessor<SVGSVGElement | undefined>;
+  setTransform: Setter<TransformDataT>;
 };
 
 function engageHover(ev: Event) {
@@ -22,7 +24,10 @@ function releaseHover(ev: Event) {
   console.log(`Left processor ${id[0] + 1},${id[1] + 1}`);
 }
 
-export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
+export default function ProcessorsGraph({
+  svg,
+  setTransform,
+}: ProcessorsGraphT) {
   let container: HTMLDivElement | undefined;
 
   createEffect(() => {
@@ -37,7 +42,20 @@ export default function ProcessorsGraph({ svg }: ProcessorsGraphT) {
         zoom<SVGSVGElement, unknown>().on(
           "zoom",
           (ev: d3.D3ZoomEvent<SVGGElement, any>) => {
-            graphGroup.attr("transform", ev.transform.toString());
+            const transform = ev.transform;
+            graphGroup.attr("transform", transform.toString());
+            const graphNode = graphGroup.node();
+
+            if (graphNode) {
+              const bRect = graphNode.getBoundingClientRect();
+              setTransform({
+                x: transform.x,
+                y: transform.y,
+                k: transform.k,
+                width: bRect.width,
+                height: bRect.height,
+              });
+            }
           }
         )
       );

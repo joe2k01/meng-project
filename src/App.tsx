@@ -3,8 +3,23 @@ import { createSignal, onMount } from "solid-js";
 import "./App.css";
 import ProcessorsGraph from "./ProcessorsGraph";
 
+export type TransformDataT = {
+  x: number;
+  y: number;
+  k: number;
+  width: number;
+  height: number;
+};
+
 function App() {
   const [svg, setSvg] = createSignal<SVGSVGElement | undefined>(undefined);
+  const [transform, setTransform] = createSignal<TransformDataT>({
+    x: 0,
+    y: 0,
+    k: 0,
+    width: 0,
+    height: 0,
+  });
 
   onMount(() => {
     invoke("get_svg")
@@ -23,7 +38,15 @@ function App() {
   return (
     <div class="flex h-full">
       {/* <div class="h-full bg-pink-500"></div> */}
-      <ProcessorsGraph svg={svg} />
+      <ProcessorsGraph svg={svg} setTransform={setTransform} />
+      <button
+        class="fixed top-10 right-10"
+        onClick={() => {
+          console.log(transform());
+        }}
+      >
+        Export
+      </button>
     </div>
   );
 }
