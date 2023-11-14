@@ -10,6 +10,11 @@ use quick_xml::events::Event;
 use quick_xml::Error;
 use quick_xml::Reader;
 use quick_xml::Writer;
+use resvg::tiny_skia::Pixmap;
+use resvg::usvg::Options;
+use resvg::usvg::Tree as UTree;
+use resvg::usvg::TreeParsing;
+use resvg::Tree as RTree;
 use tauri::State;
 
 static SVG_ATTRIBUTES: [(&'static str, &'static str); 4] = [
@@ -162,7 +167,33 @@ fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<
         }
     }
 
-    print!("{}", std::str::from_utf8(&buffer).unwrap().to_string());
+    let zoom_panned_svg = std::str::from_utf8(&buffer).unwrap().to_string();
+    let usvg_tree = UTree::from_str(&zoom_panned_svg, &Options::default());
+    match usvg_tree {
+        Ok(t) => {
+            let target_image = Pixmap::new(500, 500);
+            let pixmap = match target_image {
+                Some(mut img_buf) => {
+                    RTree::from_usvg(&t).render(resvg::usvg::Transform::default(), &mut img_buf.as_mut());
+                    Some(img_buf)
+                },
+                None => {
+                    print!("Could not allocate image\n");
+                    None
+                }
+            };
+
+            match pixmap {
+                Some(image) => {
+                    image.save_png("test.png");
+                },
+                None => {}
+            }
+        },
+        Err(e) => {
+            print!("{}\n", e)
+        }
+    }
 }
 
 fn main() {
