@@ -1,8 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::f32::consts::E;
-use std::io::Cursor;
 use std::sync::Mutex;
 
 use quick_xml::events::BytesText;
@@ -15,6 +13,8 @@ use resvg::usvg::Options;
 use resvg::usvg::Tree as UTree;
 use resvg::usvg::TreeParsing;
 use resvg::Tree as RTree;
+use resvg::usvg::TreeTextToPath;
+use resvg::usvg::fontdb::Database;
 use tauri::State;
 
 static SVG_ATTRIBUTES: [(&'static str, &'static str); 4] = [
@@ -84,6 +84,8 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                                         .create_element("text")
                                         .with_attributes([
                                             ("font-size", "25px"),
+                                            ("font-family", "Comfortaa"),
+                                            ("fill", "red"),
                                             ("x", format!("{}", c * 150 + 25).as_str()),
                                             ("y", format!("{}", r * 150 + 25).as_str()),
                                         ])
@@ -118,7 +120,7 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
 }
 
 #[tauri::command]
-fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<SVGString>) {
+fn render_svg(x: f32, y: f32, k: f32, _width: f32, _height: f32, plain_svg: State<SVGString>) {
     // The x and y come from a CSS translation so we need to invert the sign.
     // Suppose user moves element to the left by 100px.
     // Translation is going to be x: -100, y: 0.
@@ -126,7 +128,6 @@ fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<
     // same effect. Hence x = - (-100 / k)
     let x_scaled_down = -x / k;
     let y_scaled_down = -y / k;
-    print!("x: {} y: {}\n", x_scaled_down, y_scaled_down);
 
     let svg_content = plain_svg.0.lock().unwrap();
     let b = svg_content.to_string();
@@ -169,14 +170,19 @@ fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<
 
     let zoom_panned_svg = std::str::from_utf8(&buffer).unwrap().to_string();
     let usvg_tree = UTree::from_str(&zoom_panned_svg, &Options::default());
+
     match usvg_tree {
-        Ok(t) => {
-            let target_image = Pixmap::new(500, 500);
+        Ok(mut t) => {
+            let mut font_db = Database::new();
+            font_db.load_system_fonts();
+            t.convert_text(&font_db);
+            let target_image = Pixmap::new((1500.0 / k) as u32, (1500.0 / k) as u32);
             let pixmap = match target_image {
                 Some(mut img_buf) => {
-                    RTree::from_usvg(&t).render(resvg::usvg::Transform::default(), &mut img_buf.as_mut());
+                    RTree::from_usvg(&t)
+                        .render(resvg::usvg::Transform::default(), &mut img_buf.as_mut());
                     Some(img_buf)
-                },
+                }
                 None => {
                     print!("Could not allocate image\n");
                     None
@@ -185,11 +191,11 @@ fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<
 
             match pixmap {
                 Some(image) => {
-                    image.save_png("test.png");
-                },
+                    let _ = image.save_png("test.png");
+                }
                 None => {}
             }
-        },
+        }
         Err(e) => {
             print!("{}\n", e)
         }

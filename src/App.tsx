@@ -16,7 +16,7 @@ function App() {
   const [transform, setTransform] = createSignal<TransformDataT>({
     x: 0,
     y: 0,
-    k: 0,
+    k: 1,
     width: 0,
     height: 0,
   });
