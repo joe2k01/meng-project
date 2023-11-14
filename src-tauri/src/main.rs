@@ -2,8 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::f32::consts::E;
+use std::io::Cursor;
 use std::sync::Mutex;
 
+use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 use quick_xml::Error;
 use quick_xml::Reader;
@@ -25,10 +27,7 @@ static PROCESSOR_ATTRIBUTES: [(&'static str, &'static str); 5] = [
     ("stroke-linecap", "butt"),
     ("stroke-width", "3"),
 ];
-static GRAPH_ATTRIBUTES: [(&'static str, &'static str); 2] = [
-    ("id", "graph"),
-    ("root", "true")
-];
+static GRAPH_ATTRIBUTES: [(&'static str, &'static str); 2] = [("id", "graph"), ("root", "true")];
 
 struct SVGString(Mutex<String>);
 
@@ -65,6 +64,7 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                                 .create_element("g")
                                 .with_attribute(("id", format!("{},{}", r + 1, c + 1).as_str()))
                                 .write_inner_content::<_, Error>(|writer| {
+                                    // Processor
                                     writer
                                         .create_element("path")
                                         .with_attributes(PROCESSOR_ATTRIBUTES)
@@ -74,6 +74,17 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                                                 .as_str(),
                                         ))
                                         .write_empty()?;
+                                    // ID
+                                    writer
+                                        .create_element("text")
+                                        .with_attributes([
+                                            ("font-size", "25px"),
+                                            ("x", format!("{}", c * 150 + 25).as_str()),
+                                            ("y", format!("{}", r * 150 + 25).as_str()),
+                                        ])
+                                        .write_text_content(BytesText::new(
+                                            format!("{},{}", c + 1, r + 1).as_str(),
+                                        ))?;
                                     Ok(())
                                 });
                         }
@@ -93,29 +104,48 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
 fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<SVGString>) {
     let x_scaled_down = x / k;
     let y_scaled_down = y / k;
+    print!("x: {} y: {}\n", x_scaled_down, y_scaled_down);
 
-    let mut svg_content = plain_svg.0.lock().unwrap();
+    let svg_content = plain_svg.0.lock().unwrap();
     let b = svg_content.to_string();
     let mut reader = Reader::from_str(&b);
     reader.trim_text(true);
 
+    let mut buffer = Vec::new();
+    let mut writer = Writer::new(&mut buffer);
+
     loop {
         match reader.read_event() {
-            Ok(Event::Start(e))
-                if e.name().as_ref() == b"g" && e.try_get_attribute("root").unwrap_or(None).is_some() =>
-            {   
-                let elem = e.to_owned();
-                
-            },
             Ok(Event::Start(e)) if e.name().as_ref() == b"svg" => {
+                let mut elem = e.to_owned();
+                elem.clear_attributes();
+                elem = elem.with_attributes(
+                    e.attributes()
+                        .map(|attr| attr.unwrap())
+                        .filter(|attr| attr.key.as_ref() != b"viewBox"),
+                );
 
+                elem.push_attribute((
+                    "viewBox",
+                    format!(
+                        "{} {} {} {}",
+                        x_scaled_down,
+                        y_scaled_down,
+                        1500.0 / k,
+                        1500.0 / k
+                    )
+                    .as_str(),
+                ));
+                assert!(writer.write_event(Event::Start(elem)).is_ok());
             }
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
             // exits the loop when reaching end of file
             Ok(Event::Eof) => break,
-            _ => (),
+            Ok(e) => assert!(writer.write_event(e).is_ok()),
         }
     }
+
+    print!("{}", std::str::from_utf8(&buffer).unwrap().to_string());
 }
 
 fn main() {
