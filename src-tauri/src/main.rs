@@ -92,6 +92,18 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                     Ok(())
                 });
 
+            // Rectangle for export aid
+            let _ = svg_writer
+                .create_element("rect")
+                .with_attributes([
+                    ("width", "100%"),
+                    ("height", "100%"),
+                    ("fill", "none"),
+                    ("stroke", "#ff0000"),
+                    ("stroke-width", "3px"),
+                ])
+                .write_empty();
+
             Ok(())
         });
 
@@ -102,8 +114,13 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
 
 #[tauri::command]
 fn render_svg(x: f32, y: f32, k: f32, width: f32, height: f32, plain_svg: State<SVGString>) {
-    let x_scaled_down = x / k;
-    let y_scaled_down = y / k;
+    // The x and y come from a CSS translation so we need to invert the sign.
+    // Suppose user moves element to the left by 100px.
+    // Translation is going to be x: -100, y: 0.
+    // On our end here, we want to move the viewBox 100 to the right to obtain
+    // same effect. Hence x = - (-100 / k)
+    let x_scaled_down = -x / k;
+    let y_scaled_down = -y / k;
     print!("x: {} y: {}\n", x_scaled_down, y_scaled_down);
 
     let svg_content = plain_svg.0.lock().unwrap();
