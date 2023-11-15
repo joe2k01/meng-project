@@ -23,9 +23,13 @@ static SVG_ATTRIBUTES: [(&'static str, &'static str); 4] = [
     ("preserveAspectRatio", "xMidYMid meet"),
     ("class", "w-full max-h-full"),
 ];
-static PROCESSOR_PATH: &str =
-    r#"l75,0 l25,25 l0,75 l-100,0 l0,-100 m75,0 l0,-25 l50,0 l0,50 l-25,0"#;
-static PROCESSOR_ATTRIBUTES: [(&'static str, &'static str); 5] = [
+// static PROCESSOR_PATH: &str =
+//     r#"l75,0 l25,25 l0,75 l-100,0 l0,-100 m75,0 l0,-25 l50,0 l0,50 l-25,0"#;
+static PROCESSOR_PATH: &str = "l75,0 l25,25 l0,75, l-100,0 l0,-100 Z";
+static ROUTER_PATH: &str = "l0,-25 l50,0 l0,50 l-25,0 Z";
+static ID_POSITION_PATH: &str = "l100,0 Z";
+
+static PROCESSOR_ROUTER_ATTRIBUTES: [(&'static str, &'static str); 5] = [
     ("fill", "none"),
     ("fill-rule", "evenodd"),
     ("stroke", "black"),
@@ -33,8 +37,17 @@ static PROCESSOR_ATTRIBUTES: [(&'static str, &'static str); 5] = [
     ("stroke-width", "3"),
 ];
 static GRAPH_ATTRIBUTES: [(&'static str, &'static str); 2] = [("id", "graph"), ("root", "true")];
+static ID_POSITION_ATTRIBUTES: [(&'static str, &'static str); 5] = [
+    ("fill", "none"),
+    ("fill-rule", "evenodd"),
+    ("stroke", "transparent"),
+    ("stroke-linecap", "butt"),
+    ("stroke-width", "0"),
+];
 
 static ROBOTO_MONO: &'static [u8] = include_bytes!("../font/roboto-mono.ttf");
+const FONT_SIZE: i32 = 32;
+const PROCESSOR_EDGE: i32 = 100;
 
 struct SVGString(Mutex<String>);
 
@@ -67,33 +80,81 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                 .write_inner_content::<_, Error>(|graph_writer| {
                     for c in 0..cols {
                         for r in 0..rows {
+                            let group_id = format!("{},{}", r + 1, c + 1);
+
                             let _ = graph_writer
                                 .create_element("g")
-                                .with_attribute(("id", format!("{},{}", r + 1, c + 1).as_str()))
+                                .with_attribute(("id", group_id.as_str()))
                                 .write_inner_content::<_, Error>(|writer| {
                                     // Processor
                                     writer
                                         .create_element("path")
-                                        .with_attributes(PROCESSOR_ATTRIBUTES)
+                                        .with_attributes(PROCESSOR_ROUTER_ATTRIBUTES)
+                                        .with_attribute(("id", format!("{}p", group_id).as_str()))
                                         .with_attribute((
                                             "d",
                                             format!("M{},{} {}", c * 150, r * 150, PROCESSOR_PATH)
                                                 .as_str(),
                                         ))
                                         .write_empty()?;
+
+                                    // Router
+                                    writer
+                                        .create_element("path")
+                                        .with_attributes(PROCESSOR_ROUTER_ATTRIBUTES)
+                                        .with_attribute(("id", format!("{}r", group_id).as_str()))
+                                        .with_attribute((
+                                            "d",
+                                            format!(
+                                                "M{},{} {}",
+                                                c * 150 + 75, // 75 router offset
+                                                r * 150,
+                                                ROUTER_PATH
+                                            )
+                                            .as_str(),
+                                        ))
+                                        .write_empty()?;
+
+                                    // Invisible line for ID to sit on
+                                    let position_id = format!("{}id_pos", group_id);
+                                    let _ = writer
+                                        .create_element("path")
+                                        .with_attributes(ID_POSITION_ATTRIBUTES)
+                                        .with_attribute(("id", position_id.as_str()))
+                                        .with_attribute((
+                                            "d",
+                                            format!(
+                                                "M{},{} {}",
+                                                c * 150,
+                                                r * 150 + PROCESSOR_EDGE / 2 + FONT_SIZE / 3,
+                                                ID_POSITION_PATH
+                                            )
+                                            .as_str(),
+                                        ))
+                                        .write_empty();
+
                                     // ID
                                     writer
                                         .create_element("text")
                                         .with_attributes([
-                                            ("font-size", "25px"),
+                                            ("font-size", format!("{}px", FONT_SIZE).as_str()),
                                             ("font-family", "Roboto Mono"),
-                                            ("fill", "red"),
-                                            ("x", format!("{}", c * 150 + 25).as_str()),
-                                            ("y", format!("{}", r * 150 + 25).as_str()),
+                                            ("fill", "black"),
                                         ])
-                                        .write_text_content(BytesText::new(
-                                            format!("{},{}", c + 1, r + 1).as_str(),
-                                        ))?;
+                                        .write_inner_content::<_, Error>(|text_writer| {
+                                            let _ = text_writer
+                                                .create_element("textPath")
+                                                .with_attribute(("text-anchor", "middle"))
+                                                .with_attribute(("startOffset", "25%"))
+                                                .with_attribute((
+                                                    "href",
+                                                    format!("#{}", position_id).as_str(),
+                                                ))
+                                                .write_text_content(BytesText::new(
+                                                    group_id.as_str(),
+                                                ));
+                                            Ok(())
+                                        })?;
                                     Ok(())
                                 });
                         }
