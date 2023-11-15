@@ -9,12 +9,12 @@ use quick_xml::Error;
 use quick_xml::Reader;
 use quick_xml::Writer;
 use resvg::tiny_skia::Pixmap;
+use resvg::usvg::fontdb::Database;
 use resvg::usvg::Options;
 use resvg::usvg::Tree as UTree;
 use resvg::usvg::TreeParsing;
-use resvg::Tree as RTree;
 use resvg::usvg::TreeTextToPath;
-use resvg::usvg::fontdb::Database;
+use resvg::Tree as RTree;
 use tauri::State;
 
 static SVG_ATTRIBUTES: [(&'static str, &'static str); 4] = [
@@ -33,6 +33,8 @@ static PROCESSOR_ATTRIBUTES: [(&'static str, &'static str); 5] = [
     ("stroke-width", "3"),
 ];
 static GRAPH_ATTRIBUTES: [(&'static str, &'static str); 2] = [("id", "graph"), ("root", "true")];
+
+static ROBOTO_MONO: &'static [u8] = include_bytes!("../font/roboto-mono.ttf");
 
 struct SVGString(Mutex<String>);
 
@@ -84,7 +86,7 @@ fn get_svg(plain_svg: State<SVGString>) -> String {
                                         .create_element("text")
                                         .with_attributes([
                                             ("font-size", "25px"),
-                                            ("font-family", "Comfortaa"),
+                                            ("font-family", "Roboto Mono"),
                                             ("fill", "red"),
                                             ("x", format!("{}", c * 150 + 25).as_str()),
                                             ("y", format!("{}", r * 150 + 25).as_str()),
@@ -174,7 +176,8 @@ fn render_svg(x: f32, y: f32, k: f32, _width: f32, _height: f32, plain_svg: Stat
     match usvg_tree {
         Ok(mut t) => {
             let mut font_db = Database::new();
-            font_db.load_system_fonts();
+            font_db.load_font_data(ROBOTO_MONO.to_vec());
+            // font_db.load_system_fonts();
             t.convert_text(&font_db);
             let target_image = Pixmap::new((1500.0 / k) as u32, (1500.0 / k) as u32);
             let pixmap = match target_image {

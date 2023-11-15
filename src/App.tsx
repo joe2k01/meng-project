@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { createSignal, onMount } from "solid-js";
 import "./App.css";
+import "@fontsource/roboto-mono";
 import ProcessorsGraph from "./ProcessorsGraph";
 
 export type TransformDataT = {
