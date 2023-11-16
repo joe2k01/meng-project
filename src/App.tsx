@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { createSignal, onMount } from "solid-js";
 import "./App.css";
+import "@fontsource/roboto-mono";
 import ProcessorsGraph from "./ProcessorsGraph";
 
 export type TransformDataT = {
@@ -16,10 +17,14 @@ function App() {
   const [transform, setTransform] = createSignal<TransformDataT>({
     x: 0,
     y: 0,
-    k: 0,
+    k: 1,
     width: 0,
     height: 0,
   });
+
+  function renderSVG() {
+    invoke("render_svg", transform());
+  }
 
   onMount(() => {
     invoke("get_svg")
@@ -39,12 +44,7 @@ function App() {
     <div class="flex h-full">
       {/* <div class="h-full bg-pink-500"></div> */}
       <ProcessorsGraph svg={svg} setTransform={setTransform} />
-      <button
-        class="fixed top-10 right-10"
-        onClick={() => {
-          console.log(transform());
-        }}
-      >
+      <button class="fixed top-10 right-10" onClick={renderSVG}>
         Export
       </button>
     </div>
