@@ -3,6 +3,7 @@ import { createSignal, onMount } from "solid-js";
 import "./App.css";
 import "@fontsource/roboto-mono";
 import ProcessorsGraph from "./ProcessorsGraph";
+import CircularButton from "./components/CircularButton";
 
 export type TransformDataT = {
   x: number;
@@ -14,6 +15,7 @@ export type TransformDataT = {
 
 function App() {
   const [svg, setSvg] = createSignal<SVGSVGElement | undefined>(undefined);
+  const [btnEnable, setBtnEnable] = createSignal<boolean>(false);
   const [transform, setTransform] = createSignal<TransformDataT>({
     x: 0,
     y: 0,
@@ -44,7 +46,10 @@ function App() {
     <div class="flex h-full">
       {/* <div class="h-full bg-pink-500"></div> */}
       <ProcessorsGraph svg={svg} setTransform={setTransform} />
-      <button class="fixed top-10 right-10" onClick={renderSVG}>
+      <div class="fixed left-7 bottom-7">
+        <CircularButton svg={<></>} enabled={btnEnable} onClick={(ev) => {}}/>
+      </div>
+      <button class="" onClick={renderSVG}>
         Export
       </button>
     </div>
